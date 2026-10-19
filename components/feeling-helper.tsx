@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ACTIVITIES, MOODS, type Activity, type ActivityId } from "@/lib/data";
 import { suggestActivities } from "@/lib/insights";
-import { today, todaysCheckIn, update } from "@/lib/store";
+import { saveGoodThings, todaysCheckIn } from "@/lib/store";
 import { GhostLink, PrimaryButton, RequireProfile, type ReadyState } from "./ui";
 
 export function FeelingHelper() {
@@ -209,12 +209,16 @@ function GoodThings() {
   return (
     <form
       className="grid gap-2"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         const list = items.map((x) => x.trim()).filter(Boolean);
         if (!list.length) return;
-        update((s) => ({ ...s, goodThings: [...s.goodThings, { date: today(), items: list }] }));
-        setSaved(true);
+        try {
+          await saveGoodThings(list);
+          setSaved(true);
+        } catch {
+          // the error banner explains what happened
+        }
       }}
     >
       {items.map((v, i) => (

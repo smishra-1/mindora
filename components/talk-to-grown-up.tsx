@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { GROWN_UPS, HELPLINES, MOODS, type GrownUpId } from "@/lib/data";
 import { findConcern } from "@/lib/insights";
-import { latestCheckIn, update } from "@/lib/store";
+import { latestCheckIn, setGrownUpName } from "@/lib/store";
 import { BuddyAvatar, GhostLink, PrimaryButton, RequireProfile, type ReadyState } from "./ui";
 
 export function TalkToGrownUp() {
@@ -27,13 +27,6 @@ function GrownUp({ state }: { state: ReadyState }) {
   const [edited, setEdited] = useState<string | null>(null);
   const message = edited ?? defaultMsg;
   const [copied, setCopied] = useState(false);
-
-  function setName(id: GrownUpId, value: string) {
-    update((s) => ({
-      ...s,
-      profile: s.profile && { ...s.profile, grownUps: { ...s.profile.grownUps, [id]: value } },
-    }));
-  }
 
   async function shareOrCopy() {
     if (navigator.share) {
@@ -84,7 +77,7 @@ function GrownUp({ state }: { state: ReadyState }) {
                   <input
                     value={names[id] ?? ""}
                     onChange={(e) => {
-                      setName(id, e.target.value);
+                      setGrownUpName(id, e.target.value.slice(0, 40));
                       setEdited(null);
                     }}
                     placeholder={g.placeholder}

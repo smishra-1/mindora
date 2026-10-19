@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MOOD_ORDER, MOODS } from "@/lib/data";
 import { findPatterns } from "@/lib/insights";
-import { resetAll, seedSampleWeeks, type CheckIn } from "@/lib/store";
+import { deleteAllData, type CheckIn } from "@/lib/store";
 import { MoodChart } from "./mood-chart";
 import { BuddyAvatar, GhostLink, PrimaryLink, RequireProfile, type ReadyState } from "./ui";
 
@@ -32,12 +32,7 @@ function Garden({ state }: { state: ReadyState }) {
             🌱
           </span>
           <p className="max-w-sm font-display text-xl">Each check-in grows a new flower. Your garden is ready for its first seed!</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <PrimaryLink href="/checkin">Plant today&apos;s flower</PrimaryLink>
-            <button onClick={seedSampleWeeks} className="sketch-btn bg-card px-4 py-2.5 font-display">
-              Try with a sample fortnight
-            </button>
-          </div>
+          <PrimaryLink href="/checkin">Plant today&apos;s flower</PrimaryLink>
         </section>
       ) : (
         <>
@@ -48,15 +43,10 @@ function Garden({ state }: { state: ReadyState }) {
                 Garden patterns <span aria-hidden>✨</span>
               </h2>
               {patterns.length === 0 ? (
-                <div className="sketch grid gap-3 bg-card p-4 text-sm text-muted">
-                  <p>
-                    Keep checking in! After a few more days, {profile.buddyName} will spot patterns in your mood,
-                    stress and sleep.
-                  </p>
-                  <button onClick={seedSampleWeeks} className="sketch-btn justify-self-start bg-mint px-3 py-1.5 font-bold text-ink">
-                    Add a sample fortnight (demo)
-                  </button>
-                </div>
+                <p className="sketch bg-card p-4 text-sm text-muted">
+                  Keep checking in! After a few more days, {profile.buddyName} will spot patterns in your mood, stress
+                  and sleep.
+                </p>
               ) : (
                 patterns.slice(0, 4).map((p) => (
                   <p key={p.id} className="sketch p-4 font-semibold" style={{ background: TONE_BG[p.tone] }}>
@@ -85,11 +75,13 @@ function Garden({ state }: { state: ReadyState }) {
           <details className="text-sm text-muted">
             <summary className="cursor-pointer font-semibold">Privacy & data</summary>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <span>Your check-ins are saved only in this browser.</span>
+              <span>Your check-ins are saved to your private account. Only you can see them.</span>
               <button
                 className="sketch-btn bg-rose px-3 py-1.5 text-ink"
                 onClick={() => {
-                  if (confirm("Delete all check-ins and your buddy from this device?")) resetAll();
+                  if (confirm("Delete all your check-ins, good things and your buddy? This can't be undone.")) {
+                    deleteAllData();
+                  }
                 }}
               >
                 Delete all my data

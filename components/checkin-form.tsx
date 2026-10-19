@@ -58,11 +58,18 @@ function Form({ state }: { state: ReadyState }) {
     setTags((ts) => (ts.includes(t) ? ts.filter((x) => x !== t) : [...ts, t]));
   }
 
-  function submit(e: React.FormEvent) {
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!mood) return;
-    saveCheckIn({ mood, stress, sleepHours: sleep, tags, note: words.trim() });
-    router.push(checkSafety(words) === "crisis" ? "/grown-up?urgent=1" : "/chat");
+    setSaving(true);
+    try {
+      await saveCheckIn({ mood, stress, sleepHours: sleep, tags, note: words.trim() });
+      router.push(checkSafety(words) === "crisis" ? "/grown-up?urgent=1" : "/chat");
+    } catch {
+      setSaving(false); // the error banner explains what happened
+    }
   }
 
   return (
@@ -236,8 +243,8 @@ function Form({ state }: { state: ReadyState }) {
           </div>
         </fieldset>
 
-        <PrimaryButton type="submit" disabled={!mood} className="sm:justify-self-start">
-          {mood ? `Tell ${profile.buddyName} →` : "Pick a feeling first"}
+        <PrimaryButton type="submit" disabled={!mood || saving} className="sm:justify-self-start">
+          {saving ? "Saving…" : mood ? `Tell ${profile.buddyName} →` : "Pick a feeling first"}
         </PrimaryButton>
       </div>
     </form>

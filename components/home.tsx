@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BUDDIES, MOODS, type BuddyId } from "@/lib/data";
 import { findConcern } from "@/lib/insights";
-import { todaysCheckIn, update, useAppState, type Profile } from "@/lib/store";
+import { saveProfile, todaysCheckIn, useAppState, type Profile } from "@/lib/store";
 import { BuddyAvatar, GhostLink, LoadingDots, PrimaryButton, PrimaryLink, SpeechBubble } from "./ui";
 
 export function Home() {
@@ -78,8 +78,9 @@ function MeetYourBuddy() {
   const [buddy, setBuddy] = useState<BuddyId>("bunny");
   const [buddyName, setBuddyName] = useState("");
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function start(e: React.FormEvent) {
+  async function start(e: React.FormEvent) {
     e.preventDefault();
     const profile: Profile = {
       name: name.trim() || "friend",
@@ -87,8 +88,13 @@ function MeetYourBuddy() {
       buddyName: buddyName.trim() || BUDDIES[buddy].defaultName,
       grownUps: {},
     };
-    update((s) => ({ ...s, profile }));
-    router.push("/checkin");
+    setSaving(true);
+    try {
+      await saveProfile(profile);
+      router.push("/checkin");
+    } catch {
+      setSaving(false); // the error banner explains what happened
+    }
   }
 
   return (
@@ -154,9 +160,9 @@ function MeetYourBuddy() {
             className="sketch bg-card px-4 py-3 text-center text-lg placeholder:text-ink/30"
           />
         </label>
-        <PrimaryButton type="submit">Say hi! 👋</PrimaryButton>
+        <PrimaryButton type="submit" disabled={saving}>{saving ? "Saying hi…" : "Say hi! 👋"}</PrimaryButton>
         <p className="text-center text-xs text-muted">
-          🔒 Everything you share stays private on this device.
+          🔒 Everything you share is private. Only you can see it.
         </p>
       </div>
     </form>

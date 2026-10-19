@@ -15,17 +15,26 @@ or helpline when things look hard. Mindora is a wellness tool and does not repla
 
 ## Running
 
+1. Create a Supabase project and run `supabase/migrations/20261019000000_mindora_schema.sql`
+   in the SQL Editor.
+2. In Supabase **Authentication → URL Configuration**, add `http://localhost:3000/auth/confirm`
+   (and your production URL + `/auth/confirm`) to the redirect URLs.
+3. Copy `.env.example` to `.env.local` and fill in the Supabase URL, publishable key and
+   `AI_GATEWAY_API_KEY`.
+
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Copy `.env.example` to `.env.local` and add an `AI_GATEWAY_API_KEY` to turn on AI. Without it every
-AI feature falls back to built-in rules, so the app works offline.
+Without an AI Gateway key every AI feature falls back to built-in rules.
 
 ## Safety and privacy
 
 - Worrying messages are caught by fixed rules (`lib/safety.ts`) before any AI call, and always
   lead to the grown-up/helpline screen.
-- Check-ins are stored only in the browser (`localStorage`). "Delete all my data" is on the garden page.
+- Accounts use Supabase Auth (email + password). Check-ins, profile and "good things" live in
+  Supabase with row-level security, so each user can only read their own rows. Today's buddy chat
+  stays on the device. "Delete all my data" (garden page) removes the rows from Supabase.
+- The AI routes only answer signed-in users.
 - Patterns are computed by `lib/insights.ts`; the AI only rewrites them in friendly words.

@@ -1,4 +1,5 @@
 import { generateText, Output } from "ai";
+import { currentUserId } from "@/lib/supabase/server";
 import { z } from "zod";
 import { aiAvailable, BASE_RULES, buddyPersona, checkInSchema, describeCheckIn, MODEL } from "@/lib/ai";
 import { MOODS } from "@/lib/data";
@@ -26,6 +27,7 @@ const replySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  if (!(await currentUserId())) return Response.json({ error: "Please log in" }, { status: 401 });
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid request" }, { status: 400 });
   const { messages, profile, checkin } = parsed.data;

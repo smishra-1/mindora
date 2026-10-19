@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useAppState } from "@/lib/store";
+import { usePathname, useRouter } from "next/navigation";
+import { clearError, signOut, useAppState } from "@/lib/store";
 import { BUDDIES } from "@/lib/data";
 
 const LINKS = [
@@ -15,6 +15,7 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
   const state = useAppState();
   const profile = state?.profile;
 
@@ -39,7 +40,27 @@ export function Nav() {
               ))}
             </nav>
           )}
+          {state && (
+            <button
+              onClick={async () => {
+                await signOut();
+                router.replace("/login");
+              }}
+              title={`Signed in as ${state.email}`}
+              className={`rounded-full px-3 py-1.5 text-sm font-bold text-muted hover:bg-primary-soft hover:text-ink ml-auto ${profile ? "sm:ml-0" : ""}`}
+            >
+              Log out
+            </button>
+          )}
         </div>
+        {state?.error && (
+          <div role="alert" className="flex items-center justify-center gap-3 bg-rose px-4 py-2 text-sm font-semibold">
+            {state.error}
+            <button onClick={clearError} className="underline">
+              Dismiss
+            </button>
+          </div>
+        )}
       </header>
       {profile && (
         <nav

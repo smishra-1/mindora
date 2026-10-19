@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MOODS } from "@/lib/data";
 import { checkSafety } from "@/lib/safety";
-import { today, todaysCheckIn, update, type ChatMessage, type CheckIn } from "@/lib/store";
+import { setChat, today, todaysCheckIn, type ChatMessage, type CheckIn } from "@/lib/store";
 import { BuddyAvatar, GhostLink, PrimaryLink, RequireProfile, SpeechBubble, type ReadyState } from "./ui";
 
 const REASSURE: Record<string, string> = {
@@ -47,7 +47,7 @@ function Chat({ state }: { state: ReadyState }) {
   }, [messages.length, busy]);
 
   function save(msgs: ChatMessage[]) {
-    update((s) => ({ ...s, chat: { date: today(), messages: msgs } }));
+    setChat(msgs);
   }
 
   async function send(text: string) {

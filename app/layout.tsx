@@ -23,8 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <footer className="mx-auto mb-24 w-full max-w-5xl px-4 text-center text-xs text-muted sm:mb-6">
-          Mindora is a wellness tool and does not replace medical advice. Your check-ins stay
-          on this device.
+          Mindora is a wellness tool and does not replace medical advice. Your check-ins are private to your account.
         </footer>
       </body>
     </html>
