@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #fbf8ff;
+  --card: #ffffff;
+  --ink: #2b2140;
+  --muted: #6f6787;
+  --line: #2b2140;
+  --soft-line: #e6def5;
+  --primary: #9b3fd8;
+  --primary-ink: #ffffff;
+  --primary-soft: #f3e6fd;
+
+  --sun: #fdeb9c;
+  --mint: #b6efc4;
+  --sky: #9fd0f7;
+  --rose: #fcc6cc;
+  --lilac: #e4dbfb;
+  --cloud: #d9dde3;
+  --peach: #fbd2a5;
+  --grass: #a8e6a8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-soft-line: var(--soft-line);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-sun: var(--sun);
+  --color-mint: var(--mint);
+  --color-sky: var(--sky);
+  --color-rose: var(--rose);
+  --color-lilac: var(--lilac);
+  --color-cloud: var(--cloud);
+  --color-peach: var(--peach);
+  --color-grass: var(--grass);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hand-drawn card: thick ink border, soft offset shadow */
+.sketch {
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 3px 3px 0 0 rgb(43 33 64 / 0.12);
+}
+
+.sketch-btn {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 150ms ease-out;
+  box-shadow: 2px 2px 0 0 rgb(43 33 64 / 0.18);
+}
+.sketch-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0 0 rgb(43 33 64 / 0.22);
+}
+.sketch-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 0 rgb(43 33 64 / 0.2);
+}
+.sketch-btn:disabled {
+  opacity: 0.5;
+  transform: none;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 220ms ease-out both;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+.sway {
+  animation: sway 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-in,
+  .sway {
+    animation: none;
+  }
 }
