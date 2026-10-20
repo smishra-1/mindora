@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { GROWN_UPS, HELPLINES, MOODS, type GrownUpId } from "@/lib/data";
 import { findConcern } from "@/lib/insights";
 import { latestCheckIn, setGrownUpName } from "@/lib/store";
-import { BuddyAvatar, GhostLink, PrimaryButton, RequireProfile, type ReadyState } from "./ui";
+import { BuddyAvatar, CheckBadge, GhostLink, PrimaryButton, RequireProfile, type ReadyState } from "./ui";
 
 export function TalkToGrownUp() {
   return <RequireProfile>{(state) => <GrownUp state={state} />}</RequireProfile>;
@@ -37,8 +37,15 @@ function GrownUp({ state }: { state: ReadyState }) {
         // user cancelled share sheet: fall through to copy
       }
     }
-    await navigator.clipboard.writeText(message);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+    } catch {
+      // clipboard blocked: select the text so it can be copied by hand
+      const el = document.getElementById("msg") as HTMLTextAreaElement | null;
+      el?.focus();
+      el?.select();
+    }
   }
 
   const intro = urgent
@@ -65,9 +72,10 @@ function GrownUp({ state }: { state: ReadyState }) {
             return (
               <div
                 key={id}
-                className="sketch grid justify-items-center gap-2 p-4 text-center transition-colors"
-                style={{ background: on ? "var(--sun)" : "var(--card)", borderWidth: on ? 4 : 2, borderColor: on ? "var(--primary)" : undefined }}
+                className={`sketch relative grid justify-items-center gap-2 p-4 text-center transition-colors ${on ? "picked" : ""}`}
+                style={{ background: on ? "var(--sun)" : "var(--card)" }}
               >
+                {on && <CheckBadge />}
                 <span aria-hidden className="text-4xl">
                   {g.emoji}
                 </span>
@@ -81,7 +89,7 @@ function GrownUp({ state }: { state: ReadyState }) {
                       setEdited(null);
                     }}
                     placeholder={g.placeholder}
-                    className="w-full rounded-lg border-2 border-soft-line bg-card px-2 py-1 text-center text-sm"
+                    className="field w-full !rounded-lg !border-soft-line px-2 py-1 text-center text-sm"
                   />
                 </label>
                 <button
@@ -113,7 +121,7 @@ function GrownUp({ state }: { state: ReadyState }) {
             setEdited(e.target.value);
             setCopied(false);
           }}
-          className="w-full resize-y rounded-xl border-2 border-soft-line bg-bg px-3 py-2 text-lg"
+          className="field w-full resize-y px-3 py-2 text-lg"
         />
         <div className="flex flex-wrap items-center gap-3">
           <PrimaryButton onClick={shareOrCopy} className="!py-2 !text-base">
@@ -138,15 +146,20 @@ function GrownUp({ state }: { state: ReadyState }) {
 function Helplines({ urgent = false }: { urgent?: boolean }) {
   return (
     <section className="sketch grid gap-3 p-4" style={{ background: urgent ? "var(--rose)" : "var(--mint)" }}>
-      <h2 className="font-display text-xl">{urgent ? "Talk to someone now 📞" : "Free helplines, any time 📞"}</h2>
+      <h2 className="font-display text-xl">{urgent ? "Talk to someone now" : "Free helplines, any time"}</h2>
       <ul className="grid gap-2 sm:grid-cols-3">
         {HELPLINES.map((h) => (
           <li key={h.phone}>
-            <a href={`tel:${h.phone}`} className="sketch-btn block bg-card px-4 py-3">
-              <span className="font-display text-lg">
-                {h.name} · <span className="tabular-nums">{h.phone}</span>
+            <a href={`tel:${h.phone}`} className="sketch-btn flex h-full items-center gap-3 bg-card px-4 py-3">
+              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line bg-mint text-lg">
+                📞
               </span>
-              <span className="block text-sm text-muted">{h.detail}</span>
+              <span className="min-w-0">
+                <span className="block font-display text-lg leading-tight">
+                  {h.name} · <span className="tabular-nums">{h.phone}</span>
+                </span>
+                <span className="block text-sm text-muted">{h.detail}</span>
+              </span>
             </a>
           </li>
         ))}

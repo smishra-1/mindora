@@ -6,9 +6,23 @@ import { MOOD_ORDER, MOODS, STRESS_LABELS, TAGS, type MoodId, type TagId } from 
 import { guessMood } from "@/lib/insights";
 import { checkSafety } from "@/lib/safety";
 import { saveCheckIn, todaysCheckIn } from "@/lib/store";
-import { BuddyAvatar, PrimaryButton, RequireProfile, SpeechBubble, type ReadyState } from "./ui";
+import { BuddyAvatar, CheckBadge, PrimaryButton, RequireProfile, SpeechBubble, type ReadyState } from "./ui";
 
 const STRESS_EMOJI = ["", "😌", "🙂", "😐", "😣", "😫"];
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-2 font-display text-xl">
+      <span
+        aria-hidden
+        className="grid size-7 shrink-0 place-items-center rounded-full border-2 border-line bg-primary-soft text-sm font-semibold text-primary"
+      >
+        {n}
+      </span>
+      {children}
+    </span>
+  );
+}
 
 export function CheckInForm() {
   return (
@@ -74,7 +88,7 @@ function Form({ state }: { state: ReadyState }) {
 
   return (
     <form onSubmit={submit} className="pop-in grid gap-6 lg:grid-cols-[260px_1fr]">
-      <aside className="flex items-start gap-4 lg:flex-col lg:items-center">
+      <aside className="flex items-start gap-4 lg:sticky lg:top-24 lg:flex-col lg:items-center lg:self-start">
         <span className="lg:hidden">
           <BuddyAvatar profile={profile} size={64} />
         </span>
@@ -82,13 +96,17 @@ function Form({ state }: { state: ReadyState }) {
           <BuddyAvatar profile={profile} size={150} />
         </span>
         <SpeechBubble className="flex-1 lg:w-full lg:flex-none">
-          Hi {profile.name}! How are you feeling today?
+          {mood
+            ? `${MOODS[mood].emoji} ${MOODS[mood].label} — thanks for telling me, ${profile.name}!`
+            : `Hi ${profile.name}! How are you feeling today?`}
         </SpeechBubble>
       </aside>
 
       <div className="grid gap-6">
         <fieldset>
-          <legend className="mb-2 font-display text-xl">Pick a feeling</legend>
+          <legend className="mb-3">
+            <Step n={1}>Pick a feeling</Step>
+          </legend>
           <div className="grid grid-cols-3 gap-3">
             {MOOD_ORDER.map((id) => {
               const m = MOODS[id];
@@ -102,14 +120,11 @@ function Form({ state }: { state: ReadyState }) {
                     setMood(id);
                     setGuess(null);
                   }}
-                  className="sketch-btn flex flex-col items-center gap-1 py-4"
-                  style={{
-                    background: m.bg,
-                    borderWidth: on ? 4 : 2,
-                    transform: on ? "scale(1.03)" : undefined,
-                  }}
+                  className={`sketch-btn relative flex flex-col items-center gap-1 py-4 ${on ? "picked" : ""}`}
+                  style={{ background: m.bg }}
                 >
-                  <span aria-hidden className="text-4xl">
+                  {on && <CheckBadge />}
+                  <span aria-hidden className={`text-4xl transition-transform duration-200 ${on ? "scale-115" : ""}`}>
                     {m.emoji}
                   </span>
                   <span className="font-display text-lg">{m.label}</span>
@@ -121,7 +136,7 @@ function Form({ state }: { state: ReadyState }) {
 
         <div className="grid gap-2">
           <label htmlFor="words" className="font-display text-lg">
-            Or tell me in your own words
+            Not sure? Tell {profile.buddyName} in your own words <span className="text-sm font-normal text-muted">(optional)</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -136,15 +151,15 @@ function Form({ state }: { state: ReadyState }) {
               }}
               placeholder="I got left out at lunch…"
               maxLength={300}
-              className="sketch min-w-0 flex-1 bg-card px-4 py-3"
+              className="field min-w-0 flex-1 px-4 py-3"
             />
             <button
               type="button"
               onClick={askBuddy}
               disabled={!words.trim() || guessing}
-              className="sketch-btn bg-card px-4 font-display"
+              className="sketch-btn shrink-0 bg-sun px-4 font-display"
             >
-              {guessing ? "…" : "Tell"}
+              {guessing ? "Thinking…" : "Guess ✨"}
             </button>
           </div>
           {guess && mood !== guess && (
@@ -174,26 +189,45 @@ function Form({ state }: { state: ReadyState }) {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          <div className="sketch grid gap-3 bg-card p-4">
-            <label htmlFor="stress" className="font-display text-lg">
-              How much stress? <span aria-hidden>{STRESS_EMOJI[stress]}</span>
-            </label>
-            <input
-              id="stress"
-              type="range"
-              min={1}
-              max={5}
-              value={stress}
-              onChange={(e) => setStress(Number(e.target.value))}
-              aria-valuetext={STRESS_LABELS[stress]}
-              className="accent-primary"
-            />
-            <p className="text-sm font-semibold text-muted">{STRESS_LABELS[stress]}</p>
-          </div>
+          <fieldset className="sketch grid gap-3 bg-card p-4">
+            <legend className="sr-only">How much stress?</legend>
+            <span aria-hidden>
+              <Step n={2}>How much stress?</Step>
+            </span>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <label
+                  key={n}
+                  title={STRESS_LABELS[n]}
+                  className={`grid cursor-pointer place-items-center rounded-xl border-2 py-2 text-2xl transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
+                    stress === n ? "border-primary bg-primary-soft" : "border-soft-line hover:border-line"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="stress"
+                    value={n}
+                    checked={stress === n}
+                    onChange={() => setStress(n)}
+                    className="sr-only"
+                  />
+                  <span aria-hidden className={`transition-transform duration-200 ${stress === n ? "scale-115" : ""}`}>
+                    {STRESS_EMOJI[n]}
+                  </span>
+                  <span className="sr-only">{STRESS_LABELS[n]}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-sm font-semibold text-muted" aria-live="polite">
+              {STRESS_LABELS[stress]}
+            </p>
+          </fieldset>
 
           <div className="sketch grid gap-3 bg-card p-4">
-            <span id="sleep-label" className="font-display text-lg">
-              Sleep last night <span aria-hidden>🌙</span>
+            <span id="sleep-label">
+              <Step n={3}>
+                Sleep last night <span aria-hidden>🌙</span>
+              </Step>
             </span>
             <div className="flex items-center gap-3" role="group" aria-labelledby="sleep-label">
               <button
@@ -217,13 +251,17 @@ function Form({ state }: { state: ReadyState }) {
               </button>
             </div>
             <p className="text-sm font-semibold text-muted">
-              {sleep < 7 ? "A bit short — rest helps feelings!" : "Nice and rested"}
+              {sleep < 7 ? "A bit short — rest helps feelings!" : sleep > 11 ? "That's a big sleep!" : "Nice and rested"}
             </p>
           </div>
         </div>
 
         <fieldset>
-          <legend className="mb-2 font-display text-lg">What happened today?</legend>
+          <legend className="mb-3">
+            <Step n={4}>
+              What happened today? <span className="font-sans text-sm font-normal text-muted">(pick any)</span>
+            </Step>
+          </legend>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(TAGS) as TagId[]).map((t) => (
               <button
@@ -243,9 +281,11 @@ function Form({ state }: { state: ReadyState }) {
           </div>
         </fieldset>
 
-        <PrimaryButton type="submit" disabled={!mood || saving} className="sm:justify-self-start">
-          {saving ? "Saving…" : mood ? `Tell ${profile.buddyName} →` : "Pick a feeling first"}
-        </PrimaryButton>
+        <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 -mx-1 rounded-2xl bg-bg/85 p-1 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <PrimaryButton type="submit" disabled={!mood || saving} className="w-full sm:w-auto">
+            {saving ? "Saving…" : mood ? `Tell ${profile.buddyName} →` : "Pick a feeling first"}
+          </PrimaryButton>
+        </div>
       </div>
     </form>
   );

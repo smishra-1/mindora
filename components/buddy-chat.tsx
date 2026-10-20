@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { MOODS } from "@/lib/data";
 import { checkSafety } from "@/lib/safety";
 import { setChat, today, todaysCheckIn, type ChatMessage, type CheckIn } from "@/lib/store";
-import { BuddyAvatar, GhostLink, PrimaryLink, RequireProfile, SpeechBubble, type ReadyState } from "./ui";
+import { BuddyAvatar, GhostLink, PrimaryLink, RequireProfile, SpeechBubble, TypingDots, type ReadyState } from "./ui";
 
 const REASSURE: Record<string, string> = {
   happy: "Yay! Happy days are worth remembering.",
@@ -40,10 +40,11 @@ function Chat({ state }: { state: ReadyState }) {
   const [quick, setQuick] = useState<string[]>(() =>
     checkin?.note ? [checkin.note] : ["Yes, I'll tell you", "I don't know", "Not right now"],
   );
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length, busy]);
 
   function save(msgs: ChatMessage[]) {
@@ -117,47 +118,61 @@ function Chat({ state }: { state: ReadyState }) {
 
   return (
     <div className="pop-in grid gap-5 lg:grid-cols-[1fr_260px]">
-      <section aria-label={`Chat with ${profile.buddyName}`} className="sketch flex min-h-[60vh] flex-col bg-card">
+      <section
+        aria-label={`Chat with ${profile.buddyName}`}
+        className="sketch flex h-[calc(100dvh-14rem)] min-h-[420px] flex-col overflow-hidden bg-card sm:h-[calc(100dvh-12rem)] lg:max-h-[720px]"
+      >
         <header className="flex items-center gap-3 border-b-2 border-soft-line px-4 py-3">
           <BuddyAvatar profile={profile} size={44} />
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="font-display text-lg leading-tight">{profile.buddyName}</p>
-            <p className="text-xs text-muted">{busy ? "is thinking…" : "is listening…"}</p>
+            <p className="flex items-center gap-1.5 text-xs text-muted">
+              <span aria-hidden className={`size-2 rounded-full ${busy ? "animate-pulse bg-sun" : "bg-grass"}`} />
+              {busy ? "is thinking…" : "is listening"}
+            </p>
           </div>
+          <span
+            className="flex shrink-0 items-center gap-1 rounded-full border-2 border-line px-2.5 py-1 text-sm font-bold lg:hidden"
+            style={{ background: mood.bg }}
+          >
+            <span aria-hidden>{mood.emoji}</span> {mood.label}
+          </span>
         </header>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
+        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4" aria-live="polite">
           {messages.map((m, i) =>
             m.role === "assistant" ? (
               <div key={i} className="pop-in flex items-start gap-2">
                 <BuddyAvatar profile={profile} size={34} />
-                <p className="max-w-[80%] rounded-2xl rounded-tl-sm border-2 border-line bg-bg px-4 py-2.5">
+                <p className="max-w-[80%] rounded-2xl rounded-tl-sm border-2 border-line bg-bg px-4 py-2.5 leading-relaxed">
                   {m.content}
                 </p>
               </div>
             ) : (
               <div key={i} className="pop-in flex justify-end">
-                <p className="max-w-[80%] rounded-2xl rounded-tr-sm border-2 border-line bg-lilac px-4 py-2.5">
+                <p className="max-w-[80%] rounded-2xl rounded-tr-sm border-2 border-line bg-lilac px-4 py-2.5 leading-relaxed">
                   {m.content}
                 </p>
               </div>
             ),
           )}
           {busy && (
-            <div className="flex items-center gap-2 text-muted">
+            <div className="pop-in flex items-start gap-2 text-muted">
               <BuddyAvatar profile={profile} size={34} />
-              <span className="animate-pulse text-2xl tracking-widest">···</span>
+              <span className="rounded-2xl rounded-tl-sm border-2 border-line bg-bg px-4 py-3.5">
+                <TypingDots />
+              </span>
             </div>
           )}
-          <div ref={endRef} />
         </div>
 
         {quick.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-4 pb-3">
+          <div className="stagger flex flex-wrap gap-2 px-4 pb-3" aria-label="Quick replies">
             {quick.map((q) => (
               <button
                 key={q}
                 onClick={() => send(q)}
+                disabled={busy}
                 className="sketch-btn max-w-full truncate bg-sun px-3 py-1.5 text-sm font-bold"
               >
                 {q}
@@ -171,7 +186,7 @@ function Chat({ state }: { state: ReadyState }) {
             e.preventDefault();
             send(input);
           }}
-          className="flex gap-2 border-t-2 border-soft-line p-3"
+          className="flex gap-2 border-t-2 border-soft-line bg-card p-3"
         >
           <label htmlFor="chat-input" className="sr-only">
             Message {profile.buddyName}
@@ -183,23 +198,31 @@ function Chat({ state }: { state: ReadyState }) {
             placeholder={`Type to ${profile.buddyName}…`}
             maxLength={500}
             autoComplete="off"
-            className="sketch min-w-0 flex-1 bg-card px-4 py-2.5"
+            enterKeyHint="send"
+            className="field min-w-0 flex-1 px-4 py-2.5"
           />
-          <button type="submit" disabled={!input.trim() || busy} className="sketch-btn bg-primary px-4 font-display text-white">
+          <button
+            type="submit"
+            disabled={!input.trim() || busy}
+            className="sketch-btn flex shrink-0 items-center gap-1.5 bg-primary px-4 font-display text-white"
+          >
             Send
+            <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="currentColor">
+              <path d="M3.1 2.3a.75.75 0 0 1 .8-.1l13.5 7.1a.75.75 0 0 1 0 1.4L3.9 17.8a.75.75 0 0 1-1-.9L4.6 11H10a1 1 0 1 0 0-2H4.6L2.9 3.1a.75.75 0 0 1 .2-.8Z" />
+            </svg>
           </button>
         </form>
       </section>
 
-      <aside className="grid content-start gap-4">
-        <div className="sketch grid justify-items-center gap-1 py-5" style={{ background: mood.bg }}>
+      <aside className="grid content-start gap-3 sm:grid-cols-2 lg:grid-cols-1 lg:gap-4">
+        <div className="sketch hidden justify-items-center gap-1 py-5 lg:grid" style={{ background: mood.bg }}>
           <p className="text-sm font-semibold text-ink/60">Today you feel</p>
           <span aria-hidden className="text-5xl">
             {mood.emoji}
           </span>
           <p className="font-display text-2xl">{mood.label}</p>
         </div>
-        <p className="sketch bg-sun px-4 py-3 text-sm font-semibold">💛 {REASSURE[checkin.mood]}</p>
+        <p className="sketch bg-sun px-4 py-3 text-sm font-semibold sm:col-span-2 lg:col-span-1">💛 {REASSURE[checkin.mood]}</p>
         <PrimaryLink href="/helper">Help me feel better ›</PrimaryLink>
         <GhostLink href="/grown-up">💛 Tell a grown-up</GhostLink>
       </aside>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MOOD_ORDER, MOODS } from "@/lib/data";
+import { MOOD_ORDER, MOODS, STRESS_LABELS, TAGS } from "@/lib/data";
 import { findPatterns } from "@/lib/insights";
-import { deleteAllData, type CheckIn } from "@/lib/store";
+import Link from "next/link";
+import { type CheckIn } from "@/lib/store";
 import { MoodChart } from "./mood-chart";
 import { BuddyAvatar, GhostLink, PrimaryLink, RequireProfile, type ReadyState } from "./ui";
 
@@ -63,7 +64,7 @@ function Garden({ state }: { state: ReadyState }) {
           <section className="sketch grid gap-4 bg-card p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="font-display text-xl">Mood, stress & sleep</h2>
-              <dl className="flex gap-5 text-sm">
+              <dl className="flex gap-2 text-sm">
                 <Stat label="Check-ins" value={String(checkins.length)} />
                 <Stat label="Avg sleep" value={`${avgSleep.toFixed(1)} h`} />
                 <Stat label="Avg stress" value={`${avgStress.toFixed(1)} / 5`} />
@@ -72,31 +73,27 @@ function Garden({ state }: { state: ReadyState }) {
             <MoodChart checkins={recent} />
           </section>
 
-          <details className="text-sm text-muted">
-            <summary className="cursor-pointer font-semibold">Privacy & data</summary>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <span>Your check-ins are saved to your private account. Only you can see them.</span>
-              <button
-                className="sketch-btn bg-rose px-3 py-1.5 text-ink"
-                onClick={() => {
-                  if (confirm("Delete all your check-ins, good things and your buddy? This can't be undone.")) {
-                    deleteAllData();
-                  }
-                }}
-              >
-                Delete all my data
-              </button>
-            </div>
-          </details>
+          <PrivacyPanel />
         </>
       )}
     </div>
   );
 }
 
+function PrivacyPanel() {
+  return (
+    <p className="text-sm text-muted">
+      🔒 Your garden is private to your account.{" "}
+      <Link href="/settings#data" className="font-bold text-primary underline">
+        Manage your data
+      </Link>
+    </p>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="rounded-xl bg-bg px-3 py-1.5">
       <dt className="text-muted">{label}</dt>
       <dd className="font-display text-lg tabular-nums">{value}</dd>
     </div>
@@ -122,6 +119,59 @@ function Legend() {
 const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric" });
 
 function GardenScene({ checkins }: { checkins: CheckIn[] }) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const selected = checkins.find((c) => c.id === picked) ?? checkins[checkins.length - 1];
+  return (
+    <div className="grid content-start gap-3">
+      <Meadow checkins={checkins} selectedId={selected?.id} onPick={setPicked} />
+      {selected && <FlowerDetails checkin={selected} isLatest={selected === checkins[checkins.length - 1]} />}
+    </div>
+  );
+}
+
+const longDayFmt = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "short" });
+
+function FlowerDetails({ checkin: c, isLatest }: { checkin: CheckIn; isLatest: boolean }) {
+  const m = MOODS[c.mood];
+  return (
+    <section key={c.id} aria-live="polite" className="pop-in sketch flex flex-wrap items-start gap-4 bg-card p-4">
+      <span
+        aria-hidden
+        className="grid size-14 shrink-0 place-items-center rounded-full border-2 border-line text-3xl"
+        style={{ background: m.bg }}
+      >
+        {m.emoji}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted">
+          {longDayFmt.format(new Date(c.date + "T12:00:00"))}
+          {isLatest ? " · latest" : ""}
+        </p>
+        <p className="font-display text-xl">Felt {m.label.toLowerCase()}</p>
+        {c.note && <p className="mt-1 text-ink/80">&ldquo;{c.note}&rdquo;</p>}
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs font-bold">
+          <span className="rounded-full bg-primary-soft px-2.5 py-1">Stress: {STRESS_LABELS[c.stress].toLowerCase()}</span>
+          <span className="rounded-full bg-sky/50 px-2.5 py-1 tabular-nums">Slept {c.sleepHours}h</span>
+          {c.tags.map((t) => (
+            <span key={t} className="rounded-full border border-soft-line px-2.5 py-1">
+              <span aria-hidden>{TAGS[t].emoji}</span> {TAGS[t].label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Meadow({
+  checkins,
+  selectedId,
+  onPick,
+}: {
+  checkins: CheckIn[];
+  selectedId?: string;
+  onPick: (id: string) => void;
+}) {
   const W = 700;
   const H = 360;
   const ground = 270;
@@ -129,8 +179,14 @@ function GardenScene({ checkins }: { checkins: CheckIn[] }) {
   const gap = W / (n + 1);
 
   return (
-    <figure className="sketch self-start overflow-hidden bg-[#dff1ff]">
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={`${n} flowers, one for each recent check-in`}>
+    <figure className="sketch self-start overflow-hidden bg-gradient-to-b from-[#cfe9ff] to-[#eef7ff]">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="group" aria-label={`${n} flowers, one for each recent check-in. Choose a flower to see that day.`}>
+        <g aria-hidden fill="#fff" opacity={0.85}>
+          <ellipse cx={120} cy={60} rx={42} ry={14} />
+          <ellipse cx={150} cy={50} rx={28} ry={14} />
+          <ellipse cx={420} cy={90} rx={36} ry={12} />
+          <ellipse cx={444} cy={82} rx={22} ry={11} />
+        </g>
         <circle cx={W - 56} cy={52} r={28} fill="var(--sun)" stroke="#e0b400" strokeWidth={3} />
         <path d={`M-5 ${ground + 12} Q ${W / 2} ${ground - 28} ${W + 5} ${ground + 12} L ${W + 5} ${H + 5} L -5 ${H + 5} Z`} fill="var(--grass)" stroke="#5bb36a" strokeWidth={3} />
         {checkins.map((c, i) => {
@@ -140,13 +196,33 @@ function GardenScene({ checkins }: { checkins: CheckIn[] }) {
           const height = 50 + m.score * 18 + Math.min(c.sleepHours, 10) * 3;
           const y = ground - height + (i % 2) * 10;
           const isNew = i === n - 1;
+          const isSelected = c.id === selectedId;
+          const label = `${dayFmt.format(new Date(c.date + "T12:00:00"))}: ${m.label}`;
           return (
-            <g key={c.id} className="sway" style={{ transformOrigin: `${x}px ${ground + 30}px`, animationDelay: `${i * -0.4}s` }}>
-              <title>{`${dayFmt.format(new Date(c.date + "T12:00:00"))}: ${m.label}, stress ${c.stress}/5, slept ${c.sleepHours}h${c.note ? ` — ${c.note}` : ""}`}</title>
+            <g
+              key={c.id}
+              role="button"
+              tabIndex={0}
+              aria-label={label}
+              aria-pressed={isSelected}
+              onClick={() => onPick(c.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPick(c.id);
+                }
+              }}
+              className="sway cursor-pointer outline-none [&:focus-visible>circle.head]:stroke-primary"
+              style={{ transformOrigin: `${x}px ${ground + 30}px`, animationDelay: `${i * -0.4}s` }}
+            >
+              <title>{label}</title>
               <path d={`M${x} ${ground + 30} Q ${x + 6} ${(y + ground) / 2} ${x} ${y}`} stroke="#3c9a4c" strokeWidth={4} fill="none" />
               <ellipse cx={x - 9} cy={(y + ground) / 2 + 20} rx={9} ry={4} fill="#5bb36a" transform={`rotate(-30 ${x - 9} ${(y + ground) / 2 + 20})`} />
-              <circle cx={x} cy={y} r={20} fill={m.bg} stroke="#2b2140" strokeWidth={2.5} />
-              <text x={x} y={y + 7} textAnchor="middle" fontSize={20}>
+              {isSelected && <circle cx={x} cy={y} r={29} fill="none" stroke="var(--primary)" strokeWidth={3} strokeDasharray="5 4" />}
+              <circle className="head" cx={x} cy={y} r={20} fill={m.bg} stroke="#2b2140" strokeWidth={isSelected ? 3.5 : 2.5} />
+              {/* larger invisible hit area for small screens */}
+              <circle cx={x} cy={y} r={Math.min(gap / 2, 34)} fill="transparent" />
+              <text x={x} y={y + 7} textAnchor="middle" fontSize={20} pointerEvents="none">
                 {m.emoji}
               </text>
               {isNew && (
@@ -161,7 +237,7 @@ function GardenScene({ checkins }: { checkins: CheckIn[] }) {
           );
         })}
         <text x={20} y={H - 16} fontSize={14} fill="#2f6b3a" fontWeight={600}>
-          Each check-in grows a new flower.
+          Tap a flower to see that day.
         </text>
       </svg>
     </figure>

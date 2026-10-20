@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import logoMark from "@/public/logo-mark.png";
 import { PrimaryButton } from "./ui";
 
 export function AuthForm({ mode, confirmFailed = false }: { mode: "login" | "signup"; confirmFailed?: boolean }) {
@@ -15,6 +17,7 @@ export function AuthForm({ mode, confirmFailed = false }: { mode: "login" | "sig
     confirmFailed ? "That confirmation link didn't work. Try logging in, or sign up again." : null,
   );
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const isSignup = mode === "signup";
 
   async function submit(e: React.FormEvent) {
@@ -59,9 +62,7 @@ export function AuthForm({ mode, confirmFailed = false }: { mode: "login" | "sig
 
   return (
     <Card>
-      <span aria-hidden className="text-6xl sway">
-        🌱
-      </span>
+      <Image src={logoMark} alt="" loading="eager" sizes="96px" className="sway h-24 w-auto" />
       <div>
         <h1 className="font-display text-3xl font-semibold">{isSignup ? "Join Mindora" : "Welcome back!"}</h1>
         <p className="text-muted">
@@ -79,24 +80,42 @@ export function AuthForm({ mode, confirmFailed = false }: { mode: "login" | "sig
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="sketch bg-card px-4 py-3"
+            placeholder="you@example.com"
+            className="field px-4 py-3"
           />
         </label>
-        <label className="grid gap-1">
-          <span className="font-display text-lg">Password</span>
-          <input
-            type="password"
-            required
-            minLength={6}
-            autoComplete={isSignup ? "new-password" : "current-password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="sketch bg-card px-4 py-3"
-          />
-          {isSignup && <span className="text-xs text-muted">At least 6 characters.</span>}
-        </label>
+        <div className="grid gap-1">
+          <label htmlFor="password" className="font-display text-lg">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field w-full py-3 pl-4 pr-20"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-pressed={showPassword}
+              className="absolute inset-y-1.5 right-1.5 rounded-lg px-3 text-sm font-bold text-primary hover:bg-primary-soft"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+          {isSignup && (
+            <span className={`text-xs ${password.length >= 6 ? "font-semibold text-[#2f9a5a]" : "text-muted"}`}>
+              {password.length >= 6 ? "✓ Long enough" : "At least 6 characters."}
+            </span>
+          )}
+        </div>
         {error && (
-          <p role="alert" className="rounded-xl border-2 border-line bg-rose px-3 py-2 text-sm font-semibold">
+          <p role="alert" className="pop-in rounded-xl border-2 border-line bg-rose px-3 py-2 text-sm font-semibold">
             {error}
           </p>
         )}
@@ -117,7 +136,7 @@ export function AuthForm({ mode, confirmFailed = false }: { mode: "login" | "sig
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="pop-in sketch mx-auto mt-4 grid max-w-md justify-items-center gap-4 bg-card p-6 text-center sm:p-8">
+    <div className="pop-in sketch mx-auto mt-4 grid w-full max-w-md justify-items-center gap-4 bg-card p-6 text-center sm:mt-10 sm:p-8">
       {children}
     </div>
   );

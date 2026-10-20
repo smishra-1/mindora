@@ -31,7 +31,9 @@ function Helper({ state }: { state: ReadyState }) {
         )}
       </div>
 
-      <ActivityCard key={activity.id} activity={activity} />
+      <div key={activity.id} className="pop-in">
+        <ActivityCard activity={activity} />
+      </div>
 
       <div>
         <p className="mb-2 font-semibold text-muted">Not feeling it? Try another:</p>
@@ -42,7 +44,10 @@ function Helper({ state }: { state: ReadyState }) {
             .map((id) => (
               <button
                 key={id}
-                onClick={() => setCurrent(id)}
+                onClick={() => {
+                  setCurrent(id);
+                  window.scrollTo({ top: 0 });
+                }}
                 className="sketch-btn bg-sun px-4 py-2.5 font-display"
               >
                 <span aria-hidden>{ACTIVITIES[id].emoji}</span> {ACTIVITIES[id].title}
@@ -125,10 +130,11 @@ function Breather({ activity }: { activity: Activity }) {
       <div className="relative grid size-48 place-items-center">
         <div
           aria-hidden
-          className="absolute inset-0 rounded-full border-[3px] border-primary bg-card"
+          className="absolute inset-0 rounded-full border-[3px] border-primary"
           style={{
             transform: `scale(${scale})`,
-            transition: `transform ${active ? pattern[phase] || 1 : 0.3}s ease-in-out`,
+            background: active && (phase === 0 || phase === 1) ? "var(--mint)" : "var(--card)",
+            transition: `transform ${active ? pattern[phase] || 1 : 0.3}s ease-in-out, background-color ${active ? pattern[phase] || 1 : 0.3}s ease-in-out`,
           }}
         />
         <div className="relative text-center" aria-live="polite">
@@ -159,10 +165,18 @@ function Breather({ activity }: { activity: Activity }) {
       >
         {active ? "Pause" : done ? "Again" : elapsed > 0 ? "Keep going" : `Start (${activity.minutes} min)`}
       </PrimaryButton>
-      {active && (
-        <p className="text-xs text-muted tabular-nums">
-          {Math.floor((total - elapsed) / 60)}:{String((total - elapsed) % 60).padStart(2, "0")} left
-        </p>
+      {elapsed > 0 && !done && (
+        <div className="grid w-40 gap-1">
+          <div className="h-2 overflow-hidden rounded-full border border-line bg-card" aria-hidden>
+            <div
+              className="h-full bg-primary transition-[width] duration-1000 ease-linear"
+              style={{ width: `${(elapsed / total) * 100}%` }}
+            />
+          </div>
+          <p className="text-center text-xs text-muted tabular-nums">
+            {Math.floor((total - elapsed) / 60)}:{String((total - elapsed) % 60).padStart(2, "0")} left
+          </p>
+        </div>
       )}
     </div>
   );
@@ -232,7 +246,7 @@ function GoodThings() {
               setItems((xs) => xs.map((x, j) => (j === i ? e.target.value : x)));
             }}
             placeholder={["I ate my favourite lunch", "A friend made me laugh", "I saw a cute dog"][i]}
-            className="sketch min-w-0 flex-1 bg-card px-3 py-2"
+            className="field min-w-0 flex-1 px-3 py-2"
           />
         </label>
       ))}
