@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { Home } from "@/components/home";
 import { Landing } from "@/components/landing";
@@ -13,5 +14,7 @@ export default function Page() {
 }
 
 async function Gate() {
+  // Session checks compare token expiry to the current time, so always run at request time.
+  await connection();
   return (await currentUserId()) ? <Home /> : <Landing />;
 }
