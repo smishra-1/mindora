@@ -153,6 +153,19 @@ html {
   animation: sway 4s ease-in-out infinite;
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(4deg);
+  }
+}
+.float {
+  animation: float 5s ease-in-out infinite;
+}
+
 @keyframes drift {
   from {
     transform: translateX(-24px);
@@ -200,6 +213,7 @@ html {
   }
   .pop-in,
   .sway,
+  .float,
   .typing-dot,
   .drift-slow,
   .drift-slower,
